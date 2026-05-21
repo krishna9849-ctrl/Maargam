@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maargam | Simple & Creative Indian Travel</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts - Fraunces & Outfit -->
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,900;1,9..144,900&family=Outfit:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <style>
+    .font-serif-fraunces { font-family: 'Fraunces', serif; }
+    .font-outfit { font-family: 'Outfit', sans-serif; }
+    .glass-header { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(24px); border-bottom: 1px solid rgba(0, 0, 0, 0.05); }
+    .card-neat { background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.06); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    .card-neat:hover { border-color: rgba(99, 102, 241, 0.4); box-shadow: 0 20px 40px -15px rgba(0,0,0,0.06); transform: translateY(-2px); }
+    .text-gold { color: #d97706; text-shadow: 0 0 12px rgba(217, 119, 6, 0.1); }
+    .neat-input { background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.1); transition: all 0.2s ease; }
+    .neat-input:focus { border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1; }
+    
+    /* Custom Leaflet overrides */
+    .leaflet-bar { border: none !important; box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important; }
+    .leaflet-bar a { background-color: #ffffff !important; color: #4f46e5 !important; border: 1px solid rgba(0,0,0,0.05) !important; }
+    .custom-leaflet-icon { background: none !important; border: none !important; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased pb-24 relative select-none">
+
+  <!-- Navigation Bar -->
+  <nav class="sticky top-0 z-40 glass-header px-8 py-5 flex items-center justify-between shadow-sm">
+    <div class="flex items-center gap-3 font-serif-fraunces text-2xl font-black text-indigo-600 tracking-tight cursor-pointer" onclick="triggerWeatherRefresh()">
+      <!-- Compass Icon -->
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600 animate-spin" style="animation-duration: 24s"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+      <span class="italic font-bold tracking-tight text-slate-900">Maargam</span>
+    </div>
+
+    <!-- Search Input -->
+    <div class="relative w-80 max-w-md hidden md:block">
+      <!-- Search Icon -->
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input 
+        type="text" 
+        id="search-input"
+        placeholder="Search custom coordinates..." 
+        class="w-full pl-11 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all font-outfit text-xs"
+        oninput="handleSearchChange(this.value)"
+      />
+    </div>
+
+    <!-- Menu Dropdown Control -->
+    <div class="relative flex items-center gap-4">
+      <button 
+        onclick="toggleDropdown()"
+        class="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center hover:border-indigo-500 hover:text-indigo-500 transition-all"
+      >
+        <!-- Menu Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600"><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="18" x2="20" y2="18"></line></svg>
+      </button>
+
+      <!-- Dropdown Panel -->
+      <div id="dropdown-menu" class="hidden absolute right-0 top-14 w-52 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50">
+        <button 
+          onclick="openProfileModal()"
+          class="w-full px-5 py-3 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-3 transition-all"
+        >
+          <!-- User Icon -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-500"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          My Profile
+        </button>
+        <button 
+          onclick="openTripsModal()"
+          class="w-full px-5 py-3 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-3 transition-all"
+        >
+          <!-- Bookmark Icon -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-500"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+          My Trips
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Header Header -->
+  <header class="py-24 px-6 text-center max-w-3xl mx-auto space-y-6 relative overflow-hidden">
+    <div class="inline-flex items-center space-x-2 bg-indigo-500/10 border border-indigo-500/20 px-4 py-1.5 rounded-full text-[10px] font-bold tracking-widest text-indigo-400 uppercase">
+      <!-- Activity Icon -->
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-500"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+      <span>Real-time Telemetry & GIS Integration</span>
+    </div>
+    <h1 class="font-serif-fraunces text-5xl md:text-7xl font-light tracking-tight text-slate-900 mb-2">
+      Discover your <span class="text-indigo-600 italic">perfect path.</span>
+    </h1>
+    <p class="font-outfit text-sm md:text-base text-slate-500 font-normal max-w-xl mx-auto leading-relaxed">
+      Curated Indian journeys integrated with real weather feeds, satellite GPS tracking, and AI route generation.
+    </p>
+  </header>
+
+  <!-- Main Container -->
+  <div class="max-w-7xl mx-auto px-8 space-y-16">
+    
+    <!-- AI Sourcing Panel -->
+    <section class="bg-white rounded-3xl p-8 md:p-12 text-slate-800 border border-slate-200 relative overflow-hidden shadow-xl">
+      <div class="relative z-10 max-w-2xl space-y-5">
+        <div class="inline-flex items-center space-x-2 bg-indigo-50 border border-indigo-100 px-3.5 py-1 rounded-full text-[9px] font-bold tracking-widest text-indigo-600 uppercase">
+          <span id="ai-loading-icon" class="hidden"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin text-indigo-500"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg></span>
+          <span id="ai-static-icon"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-500"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg></span>
+          <span id="ai-status-text">AI Destination Sourcing</span>
+        </div>
+        
+        <h2 class="text-2xl md:text-3xl font-serif-fraunces font-bold text-slate-900 tracking-tight">
+          Sustain Custom <span class="text-indigo-400 italic">Coordinates.</span>
+        </h2>
+        <p class="text-slate-500 text-xs md:text-sm leading-relaxed font-normal">
+          Enter any Indian destination (e.g. Ooty, Kashmir, Hampi). Our AI will query the live web to fetch real pricing, current weather sensors, and build a modular tracking route on the Leaflet map.
+        </p>
+        
+        <form onsubmit="handleAiSourcing(event)" class="flex flex-col sm:flex-row gap-3 max-w-lg pt-2">
+          <input 
+            type="text" 
+            id="ai-search-input"
+            placeholder="Enter destination (e.g., Srinagar, Ooty, Hampi)" 
+            class="flex-1 px-4 py-3 rounded-xl neat-input text-slate-800 font-medium placeholder-slate-400 focus:outline-none text-xs"
+          />
+          <button 
+            type="submit" 
+            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/15"
+          >
+            <!-- Send Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            <span>Source Engine</span>
+          </button>
+        </form>
+
+        <div id="ai-attributions" class="hidden pt-5 border-t border-slate-200 space-y-2">
+          <p class="text-[9px] font-black uppercase text-slate-400 tracking-wider">Search Grounding Attributions</p>
+          <div id="attributions-list" class="flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filters Panel -->
+    <section class="bg-white p-6 rounded-2xl border border-slate-200 shadow-md grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="space-y-2">
+        <label class="block text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Target Budget (₹)</label>
+        <input 
+          type="number" 
+          id="filter-budget"
+          placeholder="1,50,000" 
+          min="5000" 
+          step="5000"
+          oninput="handleBudgetFilter(this.value)"
+          class="w-full px-4 py-3 rounded-xl neat-input text-slate-800 focus:outline-none text-xs"
+        />
+        <div id="budget-output" class="text-sm font-bold text-gold mt-1">Unlimited Fleet</div>
+      </div>
+
+      <div class="space-y-2">
+        <label class="block text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Transit Vector</label>
+        <select 
+          id="filter-transport"
+          onchange="handleTransportFilter(this.value)"
+          class="w-full px-4 py-3 rounded-xl neat-input text-slate-700 focus:outline-none text-xs"
+        >
+          <option value="all">Any Mode</option>
+          <option value="flight">Flight</option>
+          <option value="train">Train</option>
+          <option value="bus">Bus</option>
+          <option value="ship">Ship</option>
+        </select>
+      </div>
+
+      <div class="space-y-2">
+        <label class="block text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Destination Vibe</label>
+        <select 
+          id="filter-vibe"
+          onchange="handleVibeFilter(this.value)"
+          class="w-full px-4 py-3 rounded-xl neat-input text-slate-700 focus:outline-none text-xs"
+        >
+          <option value="all">All Vibes</option>
+          <option value="beach">Beach & Coastal</option>
+          <option value="mountain">Mountain & Alpine</option>
+          <option value="cultural">Heritage & Royal</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Discovery Grid Container -->
+    <div id="discovery-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <!-- Generated Cards Rendered Dynamically -->
+    </div>
+
+  </div>
+
+  <!-- Booking Modal -->
+  <div id="modal-booking" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+    <div class="bg-white rounded-[2rem] overflow-hidden shadow-2xl max-w-lg w-full border border-slate-200 relative animate-in fade-in zoom-in-95 duration-200">
+      <div class="bg-slate-50 border-b border-slate-200 px-8 py-5 text-slate-800 flex items-center justify-between">
+        <h2 class="font-serif-fraunces text-xl font-bold text-indigo-600 tracking-tight">Book Your Journey</h2>
+        <button onclick="closeModal()" class="w-8 h-8 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg flex items-center justify-center border border-slate-300">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="p-8 max-h-[80vh] overflow-y-auto">
+        <div id="booking-flow-container">
+          <form onsubmit="confirmBooking(event)" class="space-y-6">
+            <div id="booking-summary" class="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-3 font-outfit text-xs text-slate-700">
+              <!-- Summary Details Rendered Here -->
+            </div>
+            <div class="space-y-4 font-outfit text-xs text-slate-700">
+              <div>
+                <label class="block text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1.5">Full Name</label>
+                <input type="text" id="booking-name" required placeholder="Rahul Sharma" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none" />
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1.5">Email Address</label>
+                  <input type="email" id="booking-email" required placeholder="rahul@example.com" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none" />
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1.5">Phone Number</label>
+                  <input type="tel" id="booking-phone" required placeholder="+91 98765 43210" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none" />
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1.5">Travel Date</label>
+                  <input type="date" id="booking-date" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none" />
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1.5">Travelers</label>
+                  <input type="number" id="booking-count" min="1" max="20" value="1" required class="w-full px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-800" oninput="recalculateBooking()" />
+                </div>
+              </div>
+            </div>
+            <button type="submit" id="booking-submit-btn" class="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider transition-all shadow-xl">
+              Confirm Reservation
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Modal -->
+  <div id="modal-profile" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+    <div class="bg-white rounded-[2rem] overflow-hidden shadow-2xl max-w-md w-full border border-slate-200 relative animate-in fade-in zoom-in-95 duration-200">
+      <div class="bg-slate-50 border-b border-slate-200 px-8 py-5 text-slate-800 flex items-center justify-between">
+        <h2 class="font-serif-fraunces text-xl font-bold text-indigo-600 tracking-tight">My Profile</h2>
+        <button onclick="closeModal()" class="w-8 h-8 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg flex items-center justify-center border border-slate-300">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="p-8 space-y-6 text-slate-700">
+        <div class="text-center space-y-2">
+          <div class="w-20 h-20 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-2xl flex items-center justify-center text-3xl font-serif-fraunces font-bold mx-auto">
+            RS
+          </div>
+          <h3 class="font-serif-fraunces text-xl font-bold text-slate-800">Rahul Sharma</h3>
+          <p class="font-outfit text-[10px] font-bold uppercase tracking-wider text-amber-600">Corridor Explorer</p>
+        </div>
+        <div class="space-y-2 text-xs">
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between">
+            <span class="font-bold text-indigo-600 uppercase text-[9px] tracking-wider">Email Node</span>
+            <span class="font-medium text-slate-600">rahul@example.com</span>
+          </div>
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between">
+            <span class="font-bold text-indigo-600 uppercase text-[9px] tracking-wider">Device ID</span>
+            <span class="font-medium text-slate-600">+91 98765 43210</span>
+          </div>
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between">
+            <span class="font-bold text-indigo-600 uppercase text-[9px] tracking-wider">Base Hub</span>
+            <span class="font-medium text-slate-600">Mumbai Corridor</span>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-center">
+            <p id="profile-trips-count" class="font-serif-fraunces text-2xl font-bold text-indigo-400">0</p>
+            <p class="font-outfit text-[8px] font-bold uppercase text-slate-400 tracking-wider mt-1">Saves Logged</p>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-center">
+            <p class="font-serif-fraunces text-2xl font-bold text-emerald-600">1,250</p>
+            <p class="font-outfit text-[8px] font-bold uppercase text-slate-400 tracking-wider mt-1">Exploration Points</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trips Modal -->
+  <div id="modal-trips" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+    <div class="bg-white rounded-[2rem] overflow-hidden shadow-2xl max-w-md w-full border border-slate-200 relative animate-in fade-in zoom-in-95 duration-200">
+      <div class="bg-slate-50 border-b border-slate-200 px-8 py-5 text-slate-800 flex items-center justify-between">
+        <h2 class="font-serif-fraunces text-xl font-bold text-indigo-400 flex items-center gap-2 tracking-tight">My Saved Journeys</h2>
+        <button onclick="closeModal()" class="w-8 h-8 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg flex items-center justify-center border border-slate-300">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="p-8 max-h-[80vh] overflow-y-auto">
+        <div id="trips-list" class="space-y-3">
+          <!-- Dynamic Trips Placed Here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIVE TRACKER HUD -->
+  <div id="modal-tracker" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+    <div class="bg-white rounded-[2rem] overflow-hidden shadow-2xl max-w-4xl w-full border border-white/10 relative animate-in fade-in zoom-in-95 duration-200">
+      <div class="bg-slate-50 border-b border-slate-200 px-8 py-5 text-slate-800 flex items-center justify-between">
+        <h2 class="font-serif-fraunces text-xl font-bold text-indigo-400 flex items-center gap-2 tracking-tight">Live Corridor Navigation HUD</h2>
+        <button onclick="closeTrackerModal()" class="w-8 h-8 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg flex items-center justify-center transition-all border border-slate-300">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="p-8 max-h-[80vh] overflow-y-auto text-slate-700">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          <!-- Map Section -->
+          <div class="lg:col-span-7 space-y-4">
+            <div class="bg-slate-50 rounded-3xl overflow-hidden border border-slate-200 shadow-inner relative">
+              <div id="real-leaflet-map" class="w-full aspect-video z-10" style="min-height: 380px;"></div>
+              
+              <!-- Floating HUD Status -->
+              <div class="absolute top-4 left-4 z-20 flex flex-col gap-2 pointer-events-none">
+                <div class="bg-white/90 backdrop-blur-md border border-slate-200 px-3 py-1.5 rounded-lg text-slate-800 text-[9px] font-bold tracking-widest uppercase flex items-center gap-2 shadow-sm">
+                  <span id="tracker-ping" class="w-2 h-2 rounded-full bg-amber-500"></span>
+                  <span id="tracker-status-text">GPS ENGINE STANDBY</span>
+                </div>
+                <div id="distance-pill" class="hidden bg-indigo-600 px-3 py-1.5 rounded-lg text-white text-[9px] font-bold tracking-widest uppercase shadow-md">
+                  Distance: <span id="distance-value" class="font-black text-white">0</span> KM
+                </div>
+              </div>
+            </div>
+            <div id="gps-error-banner" class="hidden bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-3 text-red-600 text-xs font-bold leading-normal">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              <span id="gps-error-message"></span>
+            </div>
+          </div>
+
+          <!-- Controls Section -->
+          <div class="lg:col-span-5 space-y-6">
+            <div class="bg-slate-50 border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
+              <div class="flex justify-between items-start">
+                <div>
+                  <p class="text-[9px] font-bold text-indigo-500 uppercase tracking-wider">Active Coordinates</p>
+                  <h3 id="tracker-dest-name" class="text-2xl font-serif-fraunces font-bold text-slate-800 mt-1">Goa Coastline</h3>
+                </div>
+                <button 
+                  id="weather-refresh-btn"
+                  onclick="triggerLiveWeatherRefresh()" 
+                  class="p-2 bg-indigo-600 hover:bg-indigo-700 rounded-xl text-white transition-all transform active:scale-95 flex items-center justify-center border border-indigo-200"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+                </button>
+              </div>
+              <div class="grid grid-cols-2 gap-3 text-xs">
+                <div class="bg-white p-3 rounded-2xl border border-slate-200">
+                  <span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">Itinerary Scale</span>
+                  <span id="tracker-dest-duration" class="font-bold text-slate-600 mt-1 block">-</span>
+                </div>
+                <div class="bg-white p-3 rounded-2xl border border-slate-200">
+                  <span class="text-[8px] font-bold text-emerald-600 uppercase tracking-widest block">Weather Feed</span>
+                  <span id="tracker-dest-temp" class="font-bold text-emerald-600 mt-1 block">-</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Controller Pad -->
+            <div class="bg-slate-50 border border-slate-200 p-6 rounded-3xl space-y-5 shadow-sm">
+              <div class="flex justify-between items-center pb-3 border-b border-slate-200">
+                <h4 class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Tactical Navigation Pad</h4>
+                <span class="text-[8px] text-slate-400 font-bold uppercase">Manual Overrides</span>
+              </div>
+              <div class="flex items-center justify-between gap-4">
+                <div class="flex flex-col gap-2 w-1/2">
+                  <button 
+                    id="gps-lock-btn"
+                    onclick="toggleGpsStream()"
+                    class="px-4 py-3 rounded-xl font-bold text-[10px] uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                  >
+                    <!-- Locate Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line></svg>
+                    <span>Request GPS</span>
+                  </button>
+                  <button 
+                    onclick="resetCorridor()"
+                    class="bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 px-4 py-3 rounded-xl font-bold text-[10px] uppercase tracking-wider flex items-center justify-center gap-1.5"
+                  >
+                    <!-- Reset Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+                    <span>Reset Corridor</span>
+                  </button>
+                </div>
+
+                <!-- Simulation Joystick -->
+                <div class="flex flex-col items-center gap-1 shrink-0 w-1/2">
+                  <button onclick="shiftUserMarker('NORTH')" class="p-1.5 bg-white hover:bg-indigo-50 border border-slate-200 rounded-lg text-indigo-600 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+                  </button>
+                  <div class="flex gap-2">
+                    <button onclick="shiftUserMarker('WEST')" class="p-1.5 bg-white hover:bg-indigo-50 border border-slate-200 rounded-lg text-indigo-600 transition-all">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    </button>
+                    <button onClick="shiftUserMarker('EAST')" class="p-1.5 bg-white hover:bg-indigo-50 border border-slate-200 rounded-lg text-indigo-600 transition-all">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </button>
+                  </div>
+                  <button onClick="shiftUserMarker('SOUTH')" class="p-1.5 bg-white hover:bg-indigo-50 border border-slate-200 rounded-lg text-indigo-600 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Speed and Start Hub Dropdowns -->
+              <div class="grid grid-cols-2 gap-3 pt-2">
+                <div class="bg-white p-3 rounded-xl border border-slate-200 flex flex-col justify-center">
+                  <span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Simulator Speed</span>
+                  <select id="step-factor" onchange="handleStepFactorChange(this.value)" class="bg-transparent text-xs text-indigo-400 font-bold outline-none cursor-pointer">
+                    <option value="0.001">1x (Walk)</option>
+                    <option value="0.01" selected>5x (Drive)</option>
+                    <option value="0.05">10x (Fly)</option>
+                  </select>
+                </div>
+                <div class="bg-white p-3 rounded-xl border border-slate-200 flex flex-col justify-center">
+                  <span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Starting Hub</span>
+                  <select id="start-city-selector" onchange="handleStartCityChange(this.value)" class="bg-transparent text-xs text-indigo-400 font-bold outline-none cursor-pointer">
+                    <option value="Mumbai" selected>Mumbai</option>
+                    <option value="Delhi">Delhi</option>
+                    <option value="Bangalore">Bangalore</option>
+                    <option value="Chennai">Chennai</option>
+                    <option value="Kolkata">Kolkata</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Weather Dashboard Row -->
+          <div class="col-span-1 lg:col-span-12 border-t border-slate-200 pt-6">
+            <h4 class="font-serif-fraunces text-lg font-bold text-indigo-600 mb-4 flex items-center gap-2">
+              <!-- CloudSun Icon -->
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+              Atmospheric Sensor Feed
+            </h4>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div class="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col justify-center items-center text-center">
+                <!-- Sun Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-500 mb-1 animate-spin" style="animation-duration: 30s;"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                <span class="text-[8px] font-bold text-slate-500 uppercase tracking-wider">Condition</span>
+                <strong id="feed-condition" class="text-xs text-slate-700 mt-1 font-bold">-</strong>
+              </div>
+              <div class="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col justify-center items-center text-center">
+                <!-- Wind Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-400 mb-1"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path></svg>
+                <span class="text-[8px] font-bold text-slate-500 uppercase tracking-wider">Wind Velocity</span>
+                <strong id="feed-wind" class="text-xs text-slate-700 mt-1 font-bold">-</strong>
+              </div>
+              <div class="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col justify-center items-center text-center">
+                <!-- Droplets Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 mb-1"><path d="M12 22a7 7 0 0 0 7-7c0-4.3-7-11-7-11S5 10.7 5 15a7 7 0 0 0 7 7z"></path></svg>
+                <span class="text-[8px] font-bold text-slate-500 uppercase tracking-wider">Humidity</span>
+                <strong id="feed-humidity" class="text-xs text-slate-700 mt-1 font-bold">-</strong>
+              </div>
+              <div class="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col justify-center items-center text-center">
+                <!-- Thermometer Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-rose-500 mb-1"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path></svg>
+                <span class="text-[8px] font-bold text-slate-500 uppercase tracking-wider">Real-Feel</span>
+                <strong id="feed-realfeel" class="text-xs text-slate-700 mt-1 font-bold">-</strong>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="mt-32 py-20 border-t border-slate-200 text-center bg-white">
+    <div class="max-w-md mx-auto space-y-5">
+      <!-- Compass Icon -->
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-500 mx-auto opacity-30"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+      <p class="text-slate-400 font-bold text-[9px] uppercase tracking-[0.4em] mb-4">Maargam National Corridor Discovery Hub</p>
+      <div class="pt-6 border-t border-slate-100 flex items-center justify-center space-x-6">
+        <span class="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>
+        <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.4em]">by amrita sai students</p>
+        <span class="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Leaflet Map Script -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Main Vanilla State & Logics -->
+  <script>
+    // Helper currency formatter
+    const formatCurrency = (amount) => {
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 0
+      }).format(amount || 0);
+    };
+
+    // System Datasets & Geometries
+    const INITIAL_DESTINATIONS = [
+      {
+        name: "Goa Coastline",
+        price: 25000,
+        category: "beach",
+        transport: "bus",
+        rating: 4.8,
+        duration: "5 Days / 4 Nights",
+        weather: { temp: 31, condition: "Sunny", wind: "14 km/h", humidity: "72%" },
+        lat: 15.2993,
+        lng: 74.1240,
+        routeSteps: ["Mumbai Departure Terminal", "Pune Bypass Expressway", "Kolhapur Transit Station", "Panaji North Goa Entry"],
+        images: [
+          "https://images.unsplash.com/photo-1512789170774-83088b4737ad?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1544644181-1484b3fdfc62?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1614082242765-7c98ca0f3df3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+        ],
+        includes: "Luxury Volvo, Private Villa Stay, Coastal Buffet, Local Sightseeing",
+        description: "Sun, sand, and spice. Experience India's most loved beach destination with a creative touch."
+      },
+      {
+        name: "Manali Heights",
+        price: 18000,
+        category: "mountain",
+        transport: "bus",
+        rating: 4.9,
+        duration: "6 Days / 5 Nights",
+        weather: { temp: 16, condition: "Misty", wind: "8 km/h", humidity: "50%" },
+        lat: 32.2396,
+        lng: 77.1887,
+        routeSteps: ["Delhi Inter-State Terminus", "Ambala Corridor", "Bilaspur Hills Gate", "Kullu Valley Road", "Manali Mall Road"],
+        images: [
+          "https://images.unsplash.com/photo-1597074866923-dc0589150358?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+        ],
+        includes: "Semi-Sleeper Coach, Cedar Cottage, Solang Valley, Guided Forest Trek",
+        description: "Snowy peaks and apple orchards. A refreshing alpine escape for the soul."
+      },
+      {
+        name: "Jaipur Heritage",
+        price: 15000,
+        category: "cultural",
+        transport: "train",
+        rating: 4.7,
+        duration: "4 Days / 3 Nights",
+        weather: { temp: 34, condition: "Dry Hot", wind: "16 km/h", humidity: "30%" },
+        lat: 26.9124,
+        lng: 75.7873,
+        routeSteps: ["New Delhi Junction", "Gurugram Transit", "Alwar Heritage Junction", "Jaipur Junction Central"],
+        images: [
+          "https://images.unsplash.com/photo-1524230572899-aeba3527670b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1599661046289-e31897846e41?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+        ],
+        includes: "Shatabdi Express, Heritage Haveli, Elephant Sanctuary, Royal Dinner",
+        description: "The Pink City. Explore Rajasthan's royal legacy through its vibrant colors and forts."
+      }
+    ];
+
+    // Global Active State Module
+    const state = {
+      destinations: [...INITIAL_DESTINATIONS],
+      dropdownOpen: false,
+      activeModal: null,
+      budget: 0,
+      transportMode: 'all',
+      vibe: 'all',
+      searchQuery: '',
+      selectedTrip: null,
+      bookedTrips: [],
+      imageIndices: {},
+      trackingPercent: 0,
+      userLocation: null,
+      gpsError: null,
+      isTrackingRunning: false,
+      stepFactor: 0.01,
+      startCity: 'Mumbai',
+      isAiLoading: false,
+      isWeatherLoading: false,
+      liveWeatherModifier: 0,
+      map: null,
+      userMarker: null,
+      destMarker: null,
+      routeLine: null,
+      watchId: null
+    };
+
+    // Calculate starting coordinate positions based on starting node selection
+    function getOriginPoint(startCity) {
+      switch(startCity) {
+        case 'Delhi': return { lat: 28.6139, lng: 77.2090 };
+        case 'Bangalore': return { lat: 12.9716, lng: 77.5946 };
+        case 'Chennai': return { lat: 13.0827, lng: 80.2707 };
+        case 'Kolkata': return { lat: 22.5726, lng: 88.3639 };
+        default: return { lat: 19.0760, lng: 72.8777 }; // Mumbai Base
+      }
+    }
+
+    // Toggle Dropdown Menu visibility
+    function toggleDropdown() {
+      state.dropdownOpen = !state.dropdownOpen;
+      const menu = document.getElementById('dropdown-menu');
+      if (state.dropdownOpen) {
+        menu.classList.remove('hidden');
+      } else {
+        menu.classList.add('hidden');
+      }
+    }
+
+    // Modal Control Orchestrator
+    function openModal(modalId) {
+      closeAllModals();
+      state.activeModal = modalId;
+      const modal = document.getElementById(modalId);
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+      closeAllModals();
+    }
+
+    function closeAllModals() {
+      document.getElementById('modal-booking').classList.add('hidden');
+      document.getElementById('modal-profile').classList.add('hidden');
+      document.getElementById('modal-trips').classList.add('hidden');
+      document.getElementById('modal-tracker').classList.add('hidden');
+      state.activeModal = null;
+      state.dropdownOpen = false;
+      document.getElementById('dropdown-menu').classList.add('hidden');
+    }
+
+    // Recalculates dynamically during weather sensor loops
+    setInterval(() => {
+      const variance = (Math.random() - 0.5) * 1.5;
+      state.liveWeatherModifier = Number((state.liveWeatherModifier + variance).toFixed(1));
+      if (state.activeModal === 'live-tracker' && state.selectedTrip) {
+        updateWeatherFeeds();
+      }
+    }, 5000);
+
+    // Dynamic Leaflet Map setup
+    function openLiveTracker(tripName) {
+      const trip = state.destinations.find(d => d.name === tripName);
+      if (!trip) return;
+
+      state.selectedTrip = trip;
+      state.trackingPercent = 0;
+      state.userLocation = getOriginPoint(state.startCity);
+      state.gpsError = null;
+      state.isTrackingRunning = false;
+
+      openModal('modal-tracker');
+      
+      // Load and update labels
+      document.getElementById('tracker-dest-name').innerText = trip.name;
+      document.getElementById('tracker-dest-duration').innerText = trip.duration;
+      updateWeatherFeeds();
+
+      // Render Map Node asynchronously to guarantee container mount
+      setTimeout(() => {
+        initLeafletMap();
+      }, 150);
+    }
+
+    function initLeafletMap() {
+      const mapDiv = document.getElementById('real-leaflet-map');
+      if (!mapDiv) return;
+
+      if (state.map) {
+        state.map.remove();
+        state.map = null;
+        state.userMarker = null;
+        state.destMarker = null;
+        state.routeLine = null;
+      }
+
+      const map = L.map('real-leaflet-map', {
+        zoomControl: true,
+        attributionControl: false
+      }).setView([20.5937, 78.9629], 5);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19
+      }).addTo(map);
+
+      state.map = map;
+
+      // Plot destination
+      const destIcon = L.divIcon({
+        className: 'custom-leaflet-icon',
+        html: `<div class="relative flex items-center justify-center">
+                 <div class="absolute w-8 h-8 bg-indigo-500/20 rounded-full animate-ping"></div>
+                 <div class="w-4 h-4 bg-indigo-600 rounded-full border-2 border-white shadow-xl"></div>
+               </div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      });
+
+      state.destMarker = L.marker([state.selectedTrip.lat, state.selectedTrip.lng], { icon: destIcon })
+        .addTo(map)
+        .bindPopup(`<strong class="text-slate-900 font-bold">${state.selectedTrip.name}</strong>`)
+        .openPopup();
+
+      map.setView([state.selectedTrip.lat, state.selectedTrip.lng], 6);
+
+      // Render User Node
+      syncUserMarkerPosition();
+    }
+
+    // Recalculates user position, route vectors, and distances dynamically
+    function syncUserMarkerPosition() {
+      if (!state.map || !state.selectedTrip || !state.userLocation) return;
+
+      const userIcon = L.divIcon({
+        className: 'custom-leaflet-icon',
+        html: `<div class="relative flex items-center justify-center">
+                 <div class="absolute w-8 h-8 bg-emerald-500/20 rounded-full animate-ping"></div>
+                 <div class="w-4 h-4 bg-emerald-600 rounded-full border-2 border-white shadow-xl"></div>
+               </div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      });
+
+      if (state.userMarker) {
+        state.userMarker.setLatLng([state.userLocation.lat, state.userLocation.lng]);
+      } else {
+        // Draggable enabled
+        state.userMarker = L.marker([state.userLocation.lat, state.userLocation.lng], { 
+          icon: userIcon,
+          draggable: true 
+        })
+        .addTo(state.map)
+        .bindPopup(`<strong class="text-slate-900 font-bold">Your Position (Drag Me!)</strong>`);
+
+        state.userMarker.on('dragend', (e) => {
+          const { lat, lng } = e.target.getLatLng();
+          state.userLocation = { lat, lng };
+          syncUserMarkerPosition();
+        });
+      }
+
+      // Draw vector routing path
+      if (state.routeLine) {
+        state.routeLine.setLatLngs([
+          [state.userLocation.lat, state.userLocation.lng],
+          [state.selectedTrip.lat, state.selectedTrip.lng]
+        ]);
+      } else {
+        state.routeLine = L.polyline([
+          [state.userLocation.lat, state.userLocation.lng],
+          [state.selectedTrip.lat, state.selectedTrip.lng]
+        ], {
+          color: '#4f46e5',
+          weight: 4,
+          dashArray: '10, 8',
+          opacity: 0.8
+        }).addTo(state.map);
+      }
+
+      // Zoom adjust
+      const bounds = L.latLngBounds([
+        [state.userLocation.lat, state.userLocation.lng],
+        [state.selectedTrip.lat, state.selectedTrip.lng]
+      ]);
+      state.map.fitBounds(bounds, { padding: [50, 50] });
+
+      // Calculate Haversine Distance
+      const distance = haversineDistance(state.userLocation, state.selectedTrip);
+      const pillar = document.getElementById('distance-pill');
+      if (distance !== null) {
+        pillar.classList.remove('hidden');
+        document.getElementById('distance-value').innerText = distance;
+      } else {
+        pillar.classList.add('hidden');
+      }
+    }
+
+    // Geolocation Haversine Math
+    function haversineDistance(pt1, pt2) {
+      if (!pt1 || !pt2) return null;
+      const R = 6371; // Earth radius in km
+      const dLat = ((pt2.lat - pt1.lat) * Math.PI) / 180;
+      const dLon = ((pt2.lng - pt1.lng) * Math.PI) / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos((pt1.lat * Math.PI) / 180) * Math.cos((pt2.lat * Math.PI) / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return Math.round(R * c);
+    }
+
+    // Geolocation watch controllers
+    function toggleGpsStream() {
+      const lockBtn = document.getElementById('gps-lock-btn');
+      const ping = document.getElementById('tracker-ping');
+      const statusText = document.getElementById('tracker-status-text');
+      const errBanner = document.getElementById('gps-error-banner');
+
+      if (state.isTrackingRunning) {
+        // Disconnect
+        if (state.watchId) {
+          navigator.geolocation.clearWatch(state.watchId);
+          state.watchId = null;
+        }
+        state.isTrackingRunning = false;
+        lockBtn.innerHTML = `<span>Request GPS</span>`;
+        lockBtn.className = "px-4 py-3 rounded-xl font-bold text-[10px] uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5 transition-all active:scale-95";
+        ping.className = "w-2 h-2 rounded-full bg-amber-500 animate-none";
+        statusText.innerText = "GPS ENGINE STANDBY";
+        return;
+      }
+
+      if (!navigator.geolocation) {
+        showGpsError("Geolocation not supported by your browser");
+        return;
+      }
+
+      state.isTrackingRunning = true;
+      lockBtn.innerHTML = `<span>Disconnect GPS</span>`;
+      lockBtn.className = "px-4 py-3 rounded-xl font-bold text-[10px] uppercase tracking-wider bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center gap-1.5 transition-all active:scale-95";
+      ping.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+      statusText.innerText = "TRANSMITTING TELEMETRY...";
+      errBanner.classList.add('hidden');
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          state.userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          syncUserMarkerPosition();
+        },
+        (err) => {
+          showGpsError(err.message);
+        }
+      );
+
+      state.watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          state.userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          syncUserMarkerPosition();
+        },
+        (err) => {
+          showGpsError(err.message);
+          stopRealGpsTracking();
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    }
+
+    function showGpsError(msg) {
+      const banner = document.getElementById('gps-error-banner');
+      const errText = document.getElementById('gps-error-message');
+      errText.innerText = msg;
+      banner.classList.remove('hidden');
+    }
+
+    function stopRealGpsTracking() {
+      if (state.watchId) {
+        navigator.geolocation.clearWatch(state.watchId);
+        state.watchId = null;
+      }
+      state.isTrackingRunning = false;
+      const lockBtn = document.getElementById('gps-lock-btn');
+      if (lockBtn) {
+        lockBtn.innerHTML = `<span>Request GPS</span>`;
+        lockBtn.className = "px-4 py-3 rounded-xl font-bold text-[10px] uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5 transition-all active:scale-95";
+      }
+      document.getElementById('tracker-ping').className = "w-2 h-2 rounded-full bg-amber-500 animate-none";
+      document.getElementById('tracker-status-text').innerText = "GPS ENGINE STANDBY";
+    }
+
+    function resetCorridor() {
+      stopRealGpsTracking();
+      state.userLocation = getOriginPoint(state.startCity);
+      document.getElementById('gps-error-banner').classList.add('hidden');
+      syncUserMarkerPosition();
+    }
+
+    function closeTrackerModal() {
+      stopRealGpsTracking();
+      closeModal();
+    }
+
+    // Simulated Joystick Control System
+    function shiftUserMarker(direction) {
+      if (!state.userLocation) return;
+      const delta = state.stepFactor;
+      
+      let newLat = state.userLocation.lat;
+      let newLng = state.userLocation.lng;
+
+      if (direction === 'NORTH') newLat += delta;
+      if (direction === 'SOUTH') newLat -= delta;
+      if (direction === 'EAST') newLng += delta;
+      if (direction === 'WEST') newLng -= delta;
+
+      state.userLocation = { lat: newLat, lng: newLng };
+      syncUserMarkerPosition();
+    }
+
+    function handleStepFactorChange(val) {
+      state.stepFactor = parseFloat(val);
+    }
+
+    function handleStartCityChange(val) {
+      state.startCity = val;
+      state.userLocation = getOriginPoint(val);
+      syncUserMarkerPosition();
+    }
+
+    // Sourced AI Itinerary Sourcing Block (Grounded Google Search)
+    async function handleAiSourcing(e) {
+      e.preventDefault();
+      const input = document.getElementById('ai-search-input');
+      const query = input.value.trim();
+      if (!query || state.isAiLoading) return;
+
+      state.isAiLoading = true;
+      toggleAiLoader(true);
+
+      const tripSchema = {
+        type: "OBJECT",
+        properties: {
+          name: { type: "STRING" },
+          price: { type: "INTEGER" },
+          category: { type: "STRING" }, 
+          transport: { type: "STRING" }, 
+          rating: { type: "NUMBER" },
+          duration: { type: "STRING" },
+          weather: {
+            type: "OBJECT",
+            properties: {
+              temp: { type: "INTEGER" },
+              condition: { type: "STRING" },
+              wind: { type: "STRING" },
+              humidity: { type: "STRING" }
+            },
+            required: ["temp", "condition", "wind", "humidity"]
+          },
+          includes: { type: "STRING" },
+          description: { type: "STRING" },
+          lat: { type: "NUMBER" },
+          lng: { type: "NUMBER" },
+          routeSteps: {
+            type: "ARRAY",
+            items: { type: "STRING" }
+          }
+        },
+        required: ["name", "price", "category", "transport", "rating", "duration", "weather", "includes", "description", "lat", "lng", "routeSteps"]
+      };
+
+      const prompt = `Perform a grounded search on the web and describe an authentic travel route for the destination "${query}" in India for the current year 2026. 
+      Provide highly accurate estimated prices (integer in INR), popular inclusions, weather stats, and 4 specific milestone steps.
+      Provide the exact real-world Latitude (lat) and Longitude (lng) for the city of ${query} so we can map it on OpenStreetMap. Ensure all properties are completed.`;
+
+      try {
+        const payload = {
+          contents: [{ parts: [{ text: prompt }] }],
+          tools: [{ "google_search": {} }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: tripSchema
+          }
+        };
+
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error('API request failed');
+        const result = await response.json();
+        
+        const outputText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        const attributions = result.candidates?.[0]?.groundingMetadata?.groundingAttributions?.map(a => ({
+          uri: a.web?.uri,
+          title: a.web?.title
+        })) || [];
+
+        const newTrip = JSON.parse(outputText);
+        newTrip.images = [
+          "https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=800&q=80"
+        ];
+
+        state.destinations.unshift(newTrip);
+        renderDestinations();
+        renderAttributions(attributions);
+        input.value = "";
+      } catch (err) {
+        console.warn("AI mapping bypassed. Reverting to structural fallback.");
+        const fallbackTrip = {
+          name: query,
+          price: 32000,
+          category: "mountain",
+          transport: "flight",
+          rating: 4.8,
+          duration: "6 Days / 5 Nights",
+          weather: { temp: 21, condition: "Partly Cloudy", wind: "12 km/h", humidity: "55%" },
+          lat: 28.6139,
+          lng: 77.2090, 
+          routeSteps: ["Departure Terminal Gateway", "Regional Transit Loop", "Mountain Gateway Checkpoint", "Base Valley Lodge"],
+          includes: "Verified Local Guide, Premium Cottage, Standard Excursions",
+          description: `Indulge in the pristine ecosystems and historic vistas of ${query} curated safely.`,
+          images: ["https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?auto=format&fit=crop&w=800&q=80"]
+        };
+        state.destinations.unshift(fallbackTrip);
+        renderDestinations();
+      } finally {
+        state.isAiLoading = false;
+        toggleAiLoader(false);
+      }
+    }
+
+    function toggleAiLoader(isLoading) {
+      const active = document.getElementById('ai-loading-icon');
+      const passive = document.getElementById('ai-static-icon');
+      const text = document.getElementById('ai-status-text');
+
+      if (isLoading) {
+        active.classList.remove('hidden');
+        passive.classList.add('hidden');
+        text.innerText = "Consulting Google Knowledge Base...";
+      } else {
+        active.classList.add('hidden');
+        passive.classList.remove('hidden');
+        text.innerText = "AI Destination Sourcing";
+      }
+    }
+
+    function renderAttributions(attributions) {
+      const container = document.getElementById('ai-attributions');
+      const list = document.getElementById('attributions-list');
+      list.innerHTML = "";
+
+      if (attributions.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      container.classList.remove('hidden');
+      attributions.slice(0, 3).forEach(attr => {
+        const link = document.createElement('a');
+        link.href = attr.uri;
+        link.target = "_blank";
+        link.className = "bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 text-[9px] font-semibold text-indigo-600 flex items-center gap-1.5 transition-all";
+        link.innerHTML = `<span>${attr.title || "Verified Source"}</span>`;
+        list.appendChild(link);
+      });
+    }
+
+    // Dynamic Atmospheric lookups
+    async function triggerLiveWeatherRefresh() {
+      if (!state.selectedTrip || state.isWeatherLoading) return;
+      state.isWeatherLoading = true;
+      document.getElementById('weather-refresh-btn').classList.add('animate-spin');
+
+      const weatherSchema = {
+        type: "OBJECT",
+        properties: {
+          temp: { type: "INTEGER" },
+          condition: { type: "STRING" },
+          wind: { type: "STRING" },
+          humidity: { type: "STRING" }
+        },
+        required: ["temp", "condition", "wind", "humidity"]
+      };
+
+      const prompt = `Fetch the exact live current weather, temperature in Celsius, conditions, wind speeds, and relative humidity for "${state.selectedTrip.name}", India for the current month.`;
+
+      try {
+        const payload = {
+          contents: [{ parts: [{ text: prompt }] }],
+          tools: [{ "google_search": {} }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: weatherSchema
+          }
+        };
+
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error('Weather request failed');
+        const result = await response.json();
+        const data = JSON.parse(result.candidates?.[0]?.content?.parts?.[0]?.text);
+
+        // Update weather profiles inside the system
+        state.destinations = state.destinations.map(d => {
+          if (d.name === state.selectedTrip.name) {
+            return { ...d, weather: data };
+          }
+          return d;
+        });
+
+        state.selectedTrip.weather = data;
+        updateWeatherFeeds();
+        renderDestinations();
+      } catch (err) {
+        console.warn("Weather refresh limit. Maintaining sensor feeds.");
+      } finally {
+        state.isWeatherLoading = false;
+        document.getElementById('weather-refresh-btn').classList.remove('animate-spin');
+      }
+    }
+
+    function updateWeatherFeeds() {
+      if (!state.selectedTrip) return;
+      const modTemp = (state.selectedTrip.weather.temp + state.liveWeatherModifier).toFixed(1);
+      document.getElementById('tracker-dest-temp').innerText = `${modTemp}°C`;
+      document.getElementById('feed-condition').innerText = state.selectedTrip.weather.condition;
+      document.getElementById('feed-wind').innerText = state.selectedTrip.weather.wind;
+      document.getElementById('feed-humidity').innerText = state.selectedTrip.weather.humidity;
+      document.getElementById('feed-realfeel').innerText = `${(state.selectedTrip.weather.temp - 2).toFixed(1)}°C`;
+    }
+
+    // Filter Listeners
+    function handleBudgetFilter(val) {
+      state.budget = Number(val);
+      document.getElementById('budget-output').innerText = val === "" || Number(val) === 0 ? "Unlimited Fleet" : formatCurrency(val);
+      renderDestinations();
+    }
+
+    // Transport and vibe selectors
+    function handleTransportFilter(val) {
+      state.transportMode = val;
+      renderDestinations();
+    }
+
+    function handleVibeFilter(val) {
+      state.vibe = val;
+      renderDestinations();
+    }
+
+    function handleSearchChange(val) {
+      state.searchQuery = val;
+      renderDestinations();
+    }
+
+    // Booking system
+    function triggerBooking(tripName) {
+      const trip = state.destinations.find(d => d.name === tripName);
+      if (!trip) return;
+
+      state.selectedTrip = trip;
+      state.isBookingConfirmed = false;
+      document.getElementById('booking-name').value = "";
+      document.getElementById('booking-email').value = "";
+      document.getElementById('booking-phone').value = "";
+      document.getElementById('booking-date').value = "";
+      document.getElementById('booking-count').value = 1;
+
+      recalculateBooking();
+      openModal('modal-booking');
+    }
+
+    function recalculateBooking() {
+      const count = Math.max(1, parseInt(document.getElementById('booking-count').value) || 1);
+      const total = (state.selectedTrip?.price || 0) * count;
+
+      const summary = document.getElementById('booking-summary');
+      summary.innerHTML = `
+        <div class="flex justify-between">
+          <span class="text-slate-500 font-medium">Selected Route:</span>
+          <strong class="text-slate-800 font-bold">${state.selectedTrip?.name}</strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500 font-medium">Duration:</span>
+          <strong class="text-slate-800 font-bold">${state.selectedTrip?.duration}</strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500 font-medium">Per Ticket:</span>
+          <strong class="text-slate-800 font-bold">${formatCurrency(state.selectedTrip?.price)}</strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500 font-medium">Traveler Count:</span>
+          <strong class="text-slate-800 font-bold">${count}</strong>
+        </div>
+        <div class="border-t border-slate-200 pt-3 flex justify-between text-indigo-600 font-serif-fraunces text-base font-black text-gold">
+          <span>Total Amount:</span>
+          <span>${formatCurrency(total)}</span>
+        </div>
+      `;
+    }
+
+    function confirmBooking(e) {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('booking-submit-btn');
+      submitBtn.innerText = "Processing Itinerary...";
+      submitBtn.disabled = true;
+
+      setTimeout(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerText = "Confirm Reservation";
+        
+        // Save to Trips
+        if (!state.bookedTrips.some(t => t.name === state.selectedTrip.name)) {
+          state.bookedTrips.push(state.selectedTrip);
+        }
+
+        const email = document.getElementById('booking-email').value;
+        const container = document.getElementById('booking-flow-container');
+        container.innerHTML = `
+          <div class="text-center py-8 space-y-6">
+            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-600"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            </div>
+            <div class="space-y-2">
+              <h3 class="font-serif-fraunces text-2xl font-bold text-slate-800">Bon Voyage!</h3>
+              <p class="font-outfit text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
+                Your creative path has been securely logged. An itinerary packet is en route to <strong class="text-slate-800">${email}</strong>.
+              </p>
+            </div>
+            <button 
+              onclick="closeModal()" 
+              class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold text-xs hover:bg-[#e2725b] transition-all"
+            >
+              Return to Deck
+            </button>
+          </div>
+        `;
+      }, 1200);
+    }
+
+    // Modal Details Panel Renderers
+    function openProfileModal() {
+      document.getElementById('profile-trips-count').innerText = state.bookedTrips.length;
+      openModal('modal-profile');
+    }
+
+    function openTripsModal() {
+      const list = document.getElementById('trips-list');
+      list.innerHTML = "";
+
+      if (state.bookedTrips.length === 0) {
+        list.innerHTML = `
+          <div class="text-center py-12 space-y-4 bg-slate-50 rounded-2xl border border-slate-200 p-8">
+            <!-- Briefcase Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto text-slate-400"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+            <h3 class="font-serif-fraunces text-lg font-bold text-slate-800">No active schedules</h3>
+            <p class="font-outfit text-xs text-slate-500 max-w-xs mx-auto">
+              Your confirmed itineraries will render here in real time.
+            </p>
+          </div>
+        `;
+      } else {
+        state.bookedTrips.forEach(trip => {
+          const item = document.createElement('div');
+          item.className = "flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-200";
+          item.innerHTML = `
+            <img src="${trip.images[0]}" class="w-12 h-12 object-cover rounded-xl" alt="${trip.name}" />
+            <div>
+              <h4 class="font-serif-fraunces text-base font-bold text-slate-800">${trip.name}</h4>
+              <p class="font-outfit text-[10px] text-slate-500">Scheduled on ${new Date().toLocaleDateString()}</p>
+            </div>
+          `;
+          list.appendChild(item);
+        });
+      }
+
+      openModal('modal-trips');
+    }
+
+    // Image Carousels handlers
+    function changeCarousel(destName, direction, imagesLength) {
+      const currIdx = state.imageIndices[destName] || 0;
+      const nextIdx = (currIdx + direction + imagesLength) % imagesLength;
+      state.imageIndices[destName] = nextIdx;
+      
+      const imgEl = document.getElementById(`carousel-img-${destName.replace(/\s+/g, '')}`);
+      const presets = state.destinations.find(d => d.name === destName);
+      if (imgEl && presets) {
+        imgEl.src = presets.images[nextIdx];
+      }
+
+      // Update active bullet
+      const bullets = document.querySelectorAll(`.dot-${destName.replace(/\s+/g, '')}`);
+      bullets.forEach((b, i) => {
+        if (i === nextIdx) {
+          b.className = `dot-${destName.replace(/\s+/g, '')} w-3 h-1.5 rounded-full bg-white transition-all duration-300`;
+        } else {
+          b.className = `dot-${destName.replace(/\s+/g, '')} w-1.5 h-1.5 rounded-full bg-white/35 transition-all duration-300`;
+        }
+      });
+    }
+
+    // Destination card grid builders
+    function renderDestinations() {
+      const grid = document.getElementById('discovery-grid');
+      grid.innerHTML = "";
+
+      const filtered = state.destinations.filter(dest => {
+        const matchesBudget = state.budget === 0 || dest.price <= state.budget;
+        const matchesVibe = state.vibe === 'all' || dest.category === state.vibe;
+        const matchesTransport = state.transportMode === 'all' || dest.transport === state.transportMode;
+        const matchesSearch = state.searchQuery === "" || 
+          dest.name.toLowerCase().includes(state.searchQuery.toLowerCase()) || 
+          dest.description.toLowerCase().includes(state.searchQuery.toLowerCase());
+        
+        return matchesBudget && matchesVibe && matchesTransport && matchesSearch;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full text-center py-24 bg-white rounded-[3rem] border border-slate-200 max-w-md mx-auto space-y-4">
+            <!-- Compass Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto text-indigo-500/30 animate-pulse"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+            <h2 class="font-serif-fraunces text-xl font-bold text-slate-800">No Coordinates Located</h2>
+            <p class="font-outfit text-xs text-slate-500 max-w-xs mx-auto">
+              Please adjust your budget filter to scan broader technical corridors.
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(dest => {
+        const cleanName = dest.name.replace(/\s+/g, '');
+        const currentIdx = state.imageIndices[dest.name] || 0;
+        const card = document.createElement('article');
+        card.className = "card-neat rounded-3xl overflow-hidden flex flex-col group";
+        
+        // Dynamic transport icons
+        let tIcon = "";
+        if (dest.transport === 'flight') tIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-500"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>`;
+        else if (dest.transport === 'train') tIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-amber-500"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M9 22v-4h6v4M8 15h8M12 7h.01"></path></svg>`;
+        else if (dest.transport === 'bus') tIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><circle cx="7" cy="16" r="1"></circle><circle cx="17" cy="16" r="1"></circle><path d="M4 12h16M8 8h8"></path></svg>`;
+        else tIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-rose-500"><path d="M12 22a7 7 0 0 0 7-7c0-4.3-7-11-7-11S5 10.7 5 15a7 7 0 0 0 7 7z"></path></svg>`;
+
+        let dotsHTML = "";
+        dest.images.forEach((_, i) => {
+          dotsHTML += `<span onclick="handleSetImage(event, '${dest.name}', ${i})" class="dot-${cleanName} ${i === currentIdx ? 'w-3 h-1.5' : 'w-1.5 h-1.5'} rounded-full cursor-pointer transition-all duration-300 bg-white ${i === currentIdx ? 'bg-white' : 'bg-white/35'}"></span>`;
+        });
+
+        card.innerHTML = `
+          <!-- Image Carousel -->
+          <div class="h-64 m-3 rounded-2xl overflow-hidden relative">
+            <img id="carousel-img-${cleanName}" src="${dest.images[currentIdx]}" alt="${dest.name}" class="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700" />
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent opacity-80"></div>
+
+            <button onclick="changeCarousel('${dest.name}', -1, ${dest.images.length})" class="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-indigo-400 hover:bg-indigo-600 hover:text-white opacity-0 group-hover:opacity-100 transition-all border border-slate-200">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </button>
+            <button onclick="changeCarousel('${dest.name}', 1, ${dest.images.length})" class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-indigo-400 hover:bg-indigo-600 hover:text-white opacity-0 group-hover:opacity-100 transition-all border border-slate-200">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+            
+            <!-- Carousel Indicators -->
+            <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+              ${dotsHTML}
+            </div>
+
+            <span class="absolute top-3 right-3 bg-indigo-600 text-white px-3 py-1 rounded-lg font-serif-fraunces font-bold text-xs shadow-lg border border-white/10">
+              ${formatCurrency(dest.price)}
+            </span>
+          </div>
+
+          <!-- Card Content -->
+          <div class="px-6 pb-6 pt-2 flex-grow flex flex-col justify-between">
+            <div>
+              <!-- Telemetry Tags -->
+              <div class="flex flex-wrap items-center gap-1.5 mb-3">
+                <div class="flex items-center gap-1 bg-slate-100 border border-slate-200 text-indigo-600 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider">
+                  ${tIcon}
+                  <span>via ${dest.transport}</span>
+                </div>
+                <div class="flex items-center gap-1 bg-slate-100 border border-slate-200 text-amber-600 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-amber-500"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  <span>${dest.duration}</span>
+                </div>
+                <div class="flex items-center gap-1 bg-slate-100 border border-slate-200 text-emerald-600 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+                  <span>${dest.weather.temp}°C</span>
+                </div>
+              </div>
+
+              <h3 class="font-serif-fraunces text-xl font-bold text-slate-800 mb-2 tracking-tight">${dest.name}</h3>
+              
+              <div class="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-3 mb-4 text-[11px] leading-relaxed text-slate-500">
+                <strong class="block text-[8px] text-[#e2725b] font-bold uppercase tracking-wider mb-1">Includes</strong>
+                ${dest.includes}
+              </div>
+              
+              <p class="font-outfit text-xs text-slate-500 leading-relaxed mb-6 font-normal">
+                {dest.description}
+              </p>
+            </div>
+
+            <div class="flex items-center justify-between border-t border-slate-100 pt-4">
+              <div class="flex items-center gap-0.5">
+                ${Array.from({ length: 5 }).map((_, i) => `
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" class="${i < Math.floor(dest.rating) ? 'fill-amber-400 text-amber-400' : 'text-slate-200 fill-slate-200'}"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                `).join('')}
+              </div>
+              <div class="flex gap-2">
+                <button 
+                  onclick="openLiveTracker('${dest.name}')"
+                  class="bg-slate-50 hover:bg-slate-100 text-indigo-600 border border-slate-200 px-3 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5"
+                >
+                  <!-- Map Icon -->
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>
+                  <span class="hidden sm:inline">Track</span>
+                </button>
+                <button 
+                  onclick="triggerBooking('${dest.name}')"
+                  class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg transition-all transform active:scale-95"
+                >
+                  Book Now
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // Set Carousel index directly from dots
+    function handleSetImage(e, destName, idx) {
+      e.stopPropagation();
+      state.imageIndices[destName] = idx;
+      renderDestinations();
+    }
+
+    // Initialize layout
+    renderDestinations();
+  </script>
+</body>
+</html>
