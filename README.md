@@ -1,4 +1,4 @@
-# 🧭 Maargam (मार्गम्) • AI-Powered GIS Itinerary Hub
+# Maargam • The Travel Guide
 
 Maargam is a feature-rich, single-page web application that transforms travel planning into an interactive, real-time telemetry experience. By combining dynamic AI-grounded research with live geospatial mapping, Maargam allows users to source destinations, track their location, and visualize travel corridors using advanced GIS integration.
 
